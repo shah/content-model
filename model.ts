@@ -1,4 +1,4 @@
-import { csv } from "./deps.ts";
+import { csv, bufIO } from "./deps.ts";
 import * as g from "./guess.ts";
 import * as p from "./property.ts";
 
@@ -87,17 +87,33 @@ export async function consumeCsvSourceWithHeader(
   transformer: ContentTransformer = typedContentTransformer,
 ): Promise<ContentModel> {
   const f = await Deno.open(csvSource);
+  const matrix = await csv.readMatrix(new bufIO.BufReader(f));
+  f.close();
+
+  const colIndexByName: { [key: string]: number } = {};
+  let headerRow: string[];
   let contentIndex = 0;
   let model = undefined;
-  for await (const row of csv.readCSVObjects(f)) {
+  for (const row of matrix) {
     if (contentIndex == 0) {
+      headerRow = row;
+      row.map((col, index) => colIndexByName[col] = index);
+      contentIndex++;
+      continue;
+    }
+
+    const data: { [key: string]: any } = {};
+    row.map((value, index) => data[headerRow[index]] = value);
+
+    if (contentIndex == 1) {
       const tdg = new g.TypicalModelGuesser({});
-      tdg.guessDefnFromContent(row);
+      tdg.guessDefnFromContent(data);
       model = tdg.model;
     }
+
     const content = transformer(
       model!,
-      row,
+      data,
       contentIndex,
       consoleErrorHandler,
     );
@@ -105,6 +121,5 @@ export async function consumeCsvSourceWithHeader(
     if (!next) break;
     contentIndex++;
   }
-  f.close();
   return model!;
 }
