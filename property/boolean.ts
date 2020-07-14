@@ -74,11 +74,11 @@ export class BooleanProperty extends ConstrainedTextProperty {
     }
     if (destination) {
       const srcValueLC = srcValue.toLocaleLowerCase();
-      const destValue =
-        (srcValueLC === "1" || srcValueLC === "yes" || srcValueLC === "true" ||
+      const destValue = (srcValueLC === "1" || srcValueLC === "yes" ||
+          srcValueLC === "true" ||
           srcValueLC === "on")
-          ? true
-          : false;
+        ? true
+        : false;
       c.assignDest(this, srcPropName, destValue, destination, destFieldName);
     }
   }
