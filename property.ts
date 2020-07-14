@@ -1,5 +1,6 @@
 import { inflect } from "./deps.ts";
 import * as g from "./guess.ts";
+import * as v from "./values.ts";
 
 export type PropertyErrorMessage = string;
 
@@ -8,8 +9,7 @@ export interface PropertyErrorHandler {
     propDefn: PropertyDefn,
     propName: string,
     propValue: any,
-    content: { [propName: string]: any },
-    contentIndex: number,
+    cvs: v.ContentValueSupplier,
     message: PropertyErrorMessage,
   ): void;
 }
@@ -37,8 +37,7 @@ export type PropertyValueRequired = boolean | (() => boolean);
 export interface PropertyValueTransformer {
   transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    srcValues: v.ContentValuesSupplier,
     reportError: PropertyErrorHandler,
     destination?: object, // when not supplied, transform only validates
     destFieldName?: PropertyNameTransformer,

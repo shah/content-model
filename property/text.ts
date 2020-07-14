@@ -7,6 +7,7 @@ import {
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
+import * as v from "../values.ts";
 import * as c from "./common.ts";
 
 export class TextProperty implements PropertyDefn {
@@ -22,15 +23,14 @@ export class TextProperty implements PropertyDefn {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.srcContentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
       : " (assigned)";
     return `Any arbitrary text${guessedFrom}`;
   }
 
   transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
     destination?: object,
     destFieldName?: PropertyNameTransformer,
@@ -38,7 +38,7 @@ export class TextProperty implements PropertyDefn {
     const [srcValue, required] = c.getSourceValueAndContinue(
       this,
       srcPropName,
-      srcContent,
+      cvs,
     );
     if (!required) return;
 
@@ -47,8 +47,7 @@ export class TextProperty implements PropertyDefn {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[TextProperty] ${this.nature} property values must be a string (not ${typeof srcValue})`,
       );
       return;
@@ -80,15 +79,14 @@ export class ConstrainedTextProperty extends TextProperty {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.srcContentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
       : " (supplied)";
     return `Any text that matches RegExp ${this.constraint.regExp}${guessedFrom}`;
   }
 
   transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
     destination?: object,
     destFieldName?: PropertyNameTransformer,
@@ -96,7 +94,7 @@ export class ConstrainedTextProperty extends TextProperty {
     const [srcValue, required] = c.getSourceValueAndContinue(
       this,
       srcPropName,
-      srcContent,
+      cvs,
     );
     if (!required) return;
 
@@ -105,8 +103,7 @@ export class ConstrainedTextProperty extends TextProperty {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[ConstrainedTextProperty] ${this.nature} property values must be a string (not ${typeof srcValue})`,
       );
       return;
@@ -117,8 +114,7 @@ export class ConstrainedTextProperty extends TextProperty {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[ConstrainedTextProperty] ${this.nature} property values must be a string matching RegExp ${this.constraint.regExp}`,
       );
       return;
@@ -145,20 +141,23 @@ export class ConstrainedTextProperty extends TextProperty {
   ];
 
   static isConstrainedText(
-    guessFrom: string,
+    guessFrom: v.ContentValueSupplier,
     guesser: PropertyDefnGuesser,
   ): ConstrainedTextProperty | false {
-    const formats = [
-      ...(guesser.guessFromAdditionalTextFormats || []),
-      ...(guesser.guessFromOnlyTextFormats || this.defaultTextFormats),
-    ];
-    for (const gtf of formats) {
-      if (gtf.regExp.test(guessFrom)) {
-        return new ConstrainedTextProperty(
-          guesser.valueIsRequired,
-          gtf,
-          guesser,
-        );
+    const valueRaw = guessFrom.valueRaw;
+    if (typeof valueRaw === "string") {
+      const formats = [
+        ...(guesser.guessFromAdditionalTextFormats || []),
+        ...(guesser.guessFromOnlyTextFormats || this.defaultTextFormats),
+      ];
+      for (const gtf of formats) {
+        if (gtf.regExp.test(valueRaw)) {
+          return new ConstrainedTextProperty(
+            guesser.valueIsRequired,
+            gtf,
+            guesser,
+          );
+        }
       }
     }
     return false;

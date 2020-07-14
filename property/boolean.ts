@@ -6,6 +6,7 @@ import {
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
+import * as v from "../values.ts";
 import * as c from "./common.ts";
 import { ConstrainedTextProperty } from "./text.ts";
 
@@ -24,15 +25,14 @@ export class BooleanProperty extends ConstrainedTextProperty {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.srcContentIndex}')`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex}')`
       : " (supplied)";
     return `Boolean value where 'yes', 'on', 'off', or '1' will be true, all others will be false ${guessedFrom}`;
   }
 
   transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
     destination?: object,
     destFieldName?: PropertyNameTransformer,
@@ -40,7 +40,7 @@ export class BooleanProperty extends ConstrainedTextProperty {
     const [srcValue, required] = c.getSourceValueAndContinue(
       this,
       srcPropName,
-      srcContent,
+      cvs,
     );
     if (!required) return;
 
@@ -55,8 +55,7 @@ export class BooleanProperty extends ConstrainedTextProperty {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[BooleanProperty] ${this.nature} property values must be either a boolean or string (not ${typeof srcValue})`,
       );
       return;
@@ -66,8 +65,7 @@ export class BooleanProperty extends ConstrainedTextProperty {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[BooleanProperty] ${this.nature} property values must be a string (yes, no, on, off, 0, 1, true, or false)`,
       );
       return;
@@ -84,16 +82,26 @@ export class BooleanProperty extends ConstrainedTextProperty {
   }
 
   static isBoolean(
-    guessFrom: string,
+    guessFrom: v.ContentValueSupplier,
     guesser: PropertyDefnGuesser,
   ): BooleanProperty | false {
-    // When guessing, we don't check for 0 or 1 since those could be confused for NumericProperty derivatives.
-    // However, in the actual transform() method we do test for 0 | 1 for completeness.
-    if (/^(yes|no|true|false|on|off)$/.test(guessFrom)) {
+    const valueRaw = guessFrom.valueRaw;
+    if (typeof valueRaw === "boolean") {
       return new BooleanProperty(
         guesser.valueIsRequired,
         guesser,
       );
+    }
+
+    if (typeof valueRaw === "string") {
+      // When guessing, we don't check for 0 or 1 since those could be confused for NumericProperty derivatives.
+      // However, in the actual transform() method we do test for 0 | 1 for completeness.
+      if (/^(yes|no|true|false|on|off)$/.test(valueRaw)) {
+        return new BooleanProperty(
+          guesser.valueIsRequired,
+          guesser,
+        );
+      }
     }
     return false;
   }

@@ -7,6 +7,7 @@ import {
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
+import * as v from "../values.ts";
 
 export class UnknownProperty implements PropertyDefn {
   readonly nature: PropertyNature = "Unknown";
@@ -20,20 +21,19 @@ export class UnknownProperty implements PropertyDefn {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.srcContentIndex}, retried: ${this.guessedAgain})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex}, retries: ${this.guessedAgain})`
       : " (supplied)";
     return `Unknown property${guessedFrom}`;
   }
 
   transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
     destination?: object,
     destFieldName?: PropertyNameTransformer,
   ): void {
-    const srcValueRaw = srcContent[srcPropName];
+    const srcValueRaw = cvs.valueRaw;
     // since this is an unknown property, see if we are allowed to "guess again"
     // when additional data is available in the stream
     if (
@@ -41,7 +41,7 @@ export class UnknownProperty implements PropertyDefn {
       this.guessedBy.modelGuesser.keepSubsequentGuessAfterInitialGuess
     ) {
       const newGuess = this.guessedBy.modelGuesser.guessPropertyDefn(
-        srcContentIndex,
+        cvs,
         srcPropName,
         srcValueRaw,
       );
@@ -51,8 +51,7 @@ export class UnknownProperty implements PropertyDefn {
           .keepSubsequentGuessAfterInitialGuess(
             srcPropName,
             newGuess,
-            srcContentIndex,
-            srcContent,
+            cvs,
             reportError,
             destination,
             destFieldName,
@@ -67,21 +66,25 @@ export class UnknownProperty implements PropertyDefn {
   }
 
   static isUnknowable(
-    guessFrom: string,
+    guessFrom: v.ContentValueSupplier,
     guesser: PropertyDefnGuesser,
   ): PropertyDefn | false {
-    if (guessFrom.trim().length == 0) {
-      const unknown = guesser.unknownPropDefnSupplier
+    let valueRaw = guessFrom.valueRaw;
+    if (
+      valueRaw == undefined ||
+      (typeof valueRaw === "string" && valueRaw.trim().length == 0)
+    ) {
+      const instance = guesser.unknownPropDefnSupplier
         ? guesser.unknownPropDefnSupplier(guessFrom, guesser)
         : new UnknownProperty(guesser);
       if (guesser.modelGuesser.unknowableFromInitialGuess) {
         guesser.modelGuesser.unknowableFromInitialGuess(
           guesser.srcPropName,
-          unknown,
+          instance,
           guesser,
         );
       }
-      return unknown;
+      return instance;
     }
     return false;
   }

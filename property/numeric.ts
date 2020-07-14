@@ -7,6 +7,7 @@ import {
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
+import * as v from "../values.ts";
 import * as c from "./common.ts";
 
 export abstract class NumericProperty implements PropertyDefn {
@@ -21,25 +22,34 @@ export abstract class NumericProperty implements PropertyDefn {
 
   abstract transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
     destination?: object,
     destFieldName?: PropertyNameTransformer,
   ): void;
 
   static isNumber(
-    guessFrom: string,
+    guessFrom: v.ContentValueSupplier,
     guesser: PropertyDefnGuesser,
   ): NumericProperty | false {
-    // remove comma separators and test if we have a number
-    if (!isNaN(Number(guessFrom.replace(/,/g, "")))) {
-      const float = parseFloat(guessFrom);
-      const integer = parseInt(guessFrom);
-      if (float === integer) {
+    const valueRaw = guessFrom.valueRaw;
+    if (typeof valueRaw === "number") {
+      if (Math.round(valueRaw) == valueRaw) {
         return new IntegerProperty(guesser.valueIsRequired, guesser);
       }
       return new FloatProperty(guesser.valueIsRequired, guesser);
+    }
+
+    if (typeof valueRaw === "string") {
+      // remove comma separators and test if we have a number
+      if (!isNaN(Number(valueRaw.replace(/,/g, "")))) {
+        const float = parseFloat(guessFrom.valueRaw);
+        const integer = parseInt(guessFrom.valueRaw);
+        if (float === integer) {
+          return new IntegerProperty(guesser.valueIsRequired, guesser);
+        }
+        return new FloatProperty(guesser.valueIsRequired, guesser);
+      }
     }
     return false;
   }
@@ -50,15 +60,14 @@ export class IntegerProperty extends NumericProperty {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.srcContentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
       : " (supplied)";
     return `Any text that can be converted to an integer value${guessedFrom}`;
   }
 
   transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
     destination?: object,
     destFieldName?: PropertyNameTransformer,
@@ -66,7 +75,7 @@ export class IntegerProperty extends NumericProperty {
     const [srcValue, required] = c.getSourceValueAndContinue(
       this,
       srcPropName,
-      srcContent,
+      cvs,
     );
     if (!required) return;
 
@@ -87,8 +96,7 @@ export class IntegerProperty extends NumericProperty {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[IntegerProperty] ${this.nature} property values must be either a number or parseable string (not ${typeof srcValue})`,
       );
       return;
@@ -100,8 +108,7 @@ export class IntegerProperty extends NumericProperty {
         this,
         srcPropName,
         destValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[IntegerProperty] ${this.nature} property values must be parseable as an integer`,
       );
       return;
@@ -117,15 +124,14 @@ export class FloatProperty extends NumericProperty {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.srcContentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
       : " (supplied)";
     return `Any text that can be converted to a float value${guessedFrom}`;
   }
 
   transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
     destination?: object,
     destFieldName?: PropertyNameTransformer,
@@ -133,7 +139,7 @@ export class FloatProperty extends NumericProperty {
     const [srcValue, required] = c.getSourceValueAndContinue(
       this,
       srcPropName,
-      srcContent,
+      cvs,
     );
     if (!required) return;
 
@@ -154,8 +160,7 @@ export class FloatProperty extends NumericProperty {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[FloatProperty] ${this.nature} property values must be either a number or parseable string (not ${typeof srcValue})`,
       );
       return;
@@ -167,8 +172,7 @@ export class FloatProperty extends NumericProperty {
         this,
         srcPropName,
         destValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[FloatProperty] ${this.nature} property values must be parseable as a float`,
       );
       return;

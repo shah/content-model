@@ -8,6 +8,7 @@ import {
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
+import * as v from "../values.ts";
 import * as c from "./common.ts";
 
 export interface DateConstraint {
@@ -19,8 +20,7 @@ export class DateTimeProperty implements PropertyDefn {
 
   constructor(
     readonly valueRequired: PropertyValueRequired,
-    readonly momentFormat: string,
-    readonly strict: boolean = false,
+    readonly momentFormat?: string,
     readonly guessedContraint?: DateConstraint,
     readonly guessedBy?: PropertyDefnGuesser,
   ) {
@@ -28,15 +28,16 @@ export class DateTimeProperty implements PropertyDefn {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.srcContentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
       : " (supplied)";
-    return `Any text that matches MomentJS date format '${this.momentFormat}'${guessedFrom}`;
+    return this.momentFormat
+      ? `Any text that matches MomentJS date format '${this.momentFormat}'${guessedFrom}`
+      : `Any Date instance${guessedFrom}`;
   }
 
   transformValue(
     srcPropName: PropertyName,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
     destination?: object,
     destFieldName?: PropertyNameTransformer,
@@ -44,7 +45,7 @@ export class DateTimeProperty implements PropertyDefn {
     const [srcValue, required] = c.getSourceValueAndContinue(
       this,
       srcPropName,
-      srcContent,
+      cvs,
     );
     if (!required) return;
 
@@ -60,9 +61,19 @@ export class DateTimeProperty implements PropertyDefn {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[DateTimeProperty] ${this.nature} property values must be either a Date or string (not ${typeof srcValue})`,
+      );
+      return;
+    }
+
+    if (!this.momentFormat) {
+      reportError(
+        this,
+        srcPropName,
+        srcValue,
+        cvs,
+        `[DateTimeProperty] ${this.nature} property is a string but no MomentJS date format supplied.`,
       );
       return;
     }
@@ -77,8 +88,7 @@ export class DateTimeProperty implements PropertyDefn {
         this,
         srcPropName,
         srcValue,
-        srcContent,
-        srcContentIndex,
+        cvs,
         `[DateTimeProperty] ${this.nature} property values must be formatted as '${this.momentFormat}'`,
       );
       return;
@@ -105,25 +115,30 @@ export class DateTimeProperty implements PropertyDefn {
   ];
 
   static isDateTime(
-    guessFrom: string,
+    guessFrom: v.ContentValueSupplier,
     options: PropertyDefnGuesser,
   ): DateTimeProperty | false {
-    const formats = [
-      ...(options.guessFromAdditionalDateFormats || []),
-      ...(options.guessFromOnlyDateFormats || this.defaultDateFormats),
-    ];
-    for (const gdf of formats) {
-      const value = moment.moment(guessFrom, gdf.tryMomentFormat, true);
-      if (value.isValid()) {
-        return new DateTimeProperty(
-          options.valueIsRequired,
-          typeof gdf.tryMomentFormat === "string"
-            ? gdf.tryMomentFormat
-            : value.format(),
-          false,
-          gdf,
-          options,
-        );
+    const valueRaw = guessFrom.valueRaw;
+    if (valueRaw instanceof Date) {
+      return new DateTimeProperty(options.valueIsRequired);
+    }
+    if (typeof valueRaw === "string") {
+      const formats = [
+        ...(options.guessFromAdditionalDateFormats || []),
+        ...(options.guessFromOnlyDateFormats || this.defaultDateFormats),
+      ];
+      for (const gdf of formats) {
+        const value = moment.moment(valueRaw, gdf.tryMomentFormat, true);
+        if (value.isValid()) {
+          return new DateTimeProperty(
+            options.valueIsRequired,
+            typeof gdf.tryMomentFormat === "string"
+              ? gdf.tryMomentFormat
+              : value.format(),
+            gdf,
+            options,
+          );
+        }
       }
     }
     return false;

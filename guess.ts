@@ -9,9 +9,13 @@ import {
   TextProperty,
 } from "./property/text.ts";
 import { UnknownProperty } from "./property/unknown.ts";
+import * as v from "./values.ts";
 
 export interface GuessPropertyDefnSupplier {
-  (guessFrom: string, guesser: PropertyDefnGuesser): p.PropertyDefn;
+  (
+    guessFrom: v.ContentValueSupplier,
+    guesser: PropertyDefnGuesser,
+  ): p.PropertyDefn;
 }
 
 export interface PropertyDefnGuesserOptions {
@@ -25,9 +29,8 @@ export interface PropertyDefnGuesserOptions {
 
 export interface PropertyDefnGuesser extends PropertyDefnGuesserOptions {
   readonly modelGuesser: ModelGuesser;
-  readonly guessFromPropValue: string;
+  readonly guessFromValue: v.ContentValueSupplier;
   readonly srcPropName: p.PropertyName;
-  readonly srcContentIndex: number;
   readonly valueIsRequired: p.PropertyValueRequired;
 
   guessPropertyDefn(): p.PropertyDefn;
@@ -43,9 +46,8 @@ export class TypicalPropertyDefnGuesser implements PropertyDefnGuesser {
 
   constructor(
     readonly modelGuesser: ModelGuesser,
-    readonly guessFromPropValue: string,
+    readonly guessFromValue: v.ContentValueSupplier,
     readonly srcPropName: p.PropertyName,
-    readonly srcContentIndex: number,
     readonly valueIsRequired: p.PropertyValueRequired,
     {
       defaultPropDefnSupplier,
@@ -66,7 +68,7 @@ export class TypicalPropertyDefnGuesser implements PropertyDefnGuesser {
 
   defaultPropertyDefn(): p.PropertyDefn {
     if (this.defaultPropDefnSupplier) {
-      return this.defaultPropDefnSupplier(this.guessFromPropValue, this);
+      return this.defaultPropDefnSupplier(this.guessFromValue, this);
     }
     return new TextProperty(
       this.valueIsRequired ? this.valueIsRequired : false,
@@ -75,7 +77,7 @@ export class TypicalPropertyDefnGuesser implements PropertyDefnGuesser {
   }
 
   guessPropertyDefn(): p.PropertyDefn {
-    const guessFrom = this.guessFromPropValue;
+    const guessFrom = this.guessFromValue;
     let result: p.PropertyDefn | false = UnknownProperty.isUnknowable(
       guessFrom,
       this,
@@ -107,7 +109,7 @@ export interface ModelGuesserOptions {
   confirmGuess?(
     propName: p.PropertyName,
     guessedDefn: p.PropertyDefn,
-    guessFrom: string,
+    guessFrom: v.ContentValueSupplier,
     guesser: PropertyDefnGuesser,
   ): p.PropertyDefn;
 }
@@ -117,7 +119,7 @@ export interface ModelGuesser extends ModelGuesserOptions {
 
   guessDefnFromContent(content: { [key: string]: any }): void;
   guessPropertyDefn(
-    srcContentIndex: number,
+    srcValue: v.ContentValueSupplier,
     srcPropName: p.PropertyName,
     guessFromValue: string,
   ): p.PropertyDefn | undefined;
@@ -130,8 +132,7 @@ export interface ModelGuesser extends ModelGuesserOptions {
   keepSubsequentGuessAfterInitialGuess?(
     propName: p.PropertyName,
     colDefn: p.PropertyDefn,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    srcValues: v.ContentValuesSupplier,
     reportError: p.PropertyErrorHandler,
     destination?: object,
     destFieldName?: p.PropertyNameTransformer,
@@ -149,7 +150,7 @@ export class TypicalModelGuesser implements ModelGuesser {
   readonly confirmGuess?: (
     propName: p.PropertyName,
     guessedDefn: p.PropertyDefn,
-    guessFrom: string,
+    guessFrom: v.ContentValueSupplier,
     options: PropertyDefnGuesser,
   ) => p.PropertyDefn;
 
@@ -168,9 +169,8 @@ export class TypicalModelGuesser implements ModelGuesser {
   }
 
   guessPropertyDefn(
-    srcContentIndex: number,
+    cvs: v.ContentValueSupplier,
     srcPropName: p.PropertyName,
-    guessFromValue: string,
   ): p.PropertyDefn | undefined {
     if (this.skipProperties) {
       const skip = this.skipProperties[srcPropName];
@@ -196,9 +196,8 @@ export class TypicalModelGuesser implements ModelGuesser {
 
     const propGuesser = new TypicalPropertyDefnGuesser(
       this,
-      guessFromValue,
+      cvs,
       srcPropName,
-      srcContentIndex,
       this.requirePropertyValue
         ? (srcPropName in this.requirePropertyValue
           ? this.requirePropertyValue[srcPropName]
@@ -211,19 +210,18 @@ export class TypicalModelGuesser implements ModelGuesser {
       ? this.confirmGuess(
         srcPropName,
         guessed,
-        guessFromValue,
+        cvs,
         propGuesser,
       )
       : guessed;
   }
 
-  guessDefnFromContent(content: { [key: string]: any }): void {
-    for (const property of Object.entries(content)) {
-      const propName = property[0];
+  guessDefnFromContent(cvs: v.ContentValuesSupplier): void {
+    for (const propName of cvs.valueNames) {
+      const value = cvs.valueByName(propName);
       const guessed = this.guessPropertyDefn(
-        0,
+        { ...cvs, valueRaw: value },
         propName,
-        property[1],
       );
       if (guessed) {
         this.model[propName] = guessed;
@@ -234,8 +232,7 @@ export class TypicalModelGuesser implements ModelGuesser {
   keepSubsequentGuessAfterInitialGuess(
     propName: p.PropertyName,
     colDefn: p.PropertyDefn,
-    srcContentIndex: number,
-    srcContent: { [propName: string]: any },
+    srcValues: v.ContentValuesSupplier,
     reportError: p.PropertyErrorHandler,
     destination?: object,
     destFieldName?: p.PropertyNameTransformer,
@@ -247,8 +244,7 @@ export class TypicalModelGuesser implements ModelGuesser {
     this.model[propName] = colDefn;
     colDefn.transformValue(
       propName,
-      srcContentIndex,
-      srcContent,
+      srcValues,
       reportError,
       destination,
       destFieldName,

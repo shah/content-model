@@ -1,6 +1,7 @@
-import { csv, bufIO } from "./deps.ts";
+import { bufIO, csv } from "./deps.ts";
 import * as g from "./guess.ts";
 import * as p from "./property.ts";
+import * as v from "./values.ts";
 
 export interface ContentModel {
   [propertyName: string]: p.PropertyDefn;
@@ -21,8 +22,7 @@ export interface ContentErrorHandler {
 export interface ContentTransformer {
   (
     model: ContentModel,
-    content: { [key: string]: any },
-    contentIndex: number,
+    values: v.ContentValuesSupplier,
     eh: ContentErrorHandler,
     tranformFieldName?: p.PropertyNameTransformer,
   ): object;
@@ -30,8 +30,7 @@ export interface ContentTransformer {
 
 export function typedContentTransformer(
   model: ContentModel,
-  content: { [key: string]: any },
-  contentIndex: number,
+  values: v.ContentValuesSupplier,
   eh: ContentErrorHandler,
   tranformFieldName?: p.PropertyNameTransformer,
 ): object {
@@ -41,8 +40,7 @@ export function typedContentTransformer(
     const propDefn = property[1];
     propDefn.transformValue(
       propertyName,
-      contentIndex,
-      content,
+      values,
       eh.reportPropertyError,
       result,
       tranformFieldName,
@@ -60,12 +58,11 @@ export class ConsoleErrorHandler implements ContentErrorHandler {
     propDefn: p.PropertyDefn,
     propName: string,
     propValue: any,
-    content: { [propName: string]: any },
-    contentIndex: number,
+    cvs: v.ContentValuesSupplier,
     message: p.PropertyErrorMessage,
   ): void {
     console.log(
-      `[Item ${contentIndex} ${propName}]: ${propValue} (${message})`,
+      `[Item ${cvs.contentIndex} ${propName}]: ${propValue} (${message})`,
     );
   }
 
@@ -102,19 +99,24 @@ export async function consumeCsvSourceWithHeader(
       continue;
     }
 
-    const data: { [key: string]: any } = {};
-    row.map((value, index) => data[headerRow[index]] = value);
+    const values: v.ContentValuesSupplier = {
+      contentIndex: contentIndex,
+      valueNames: headerRow!,
+      valueByName: (name: string): any => {
+        const index = colIndexByName[name];
+        return row[index];
+      },
+    };
 
     if (contentIndex == 1) {
       const tdg = new g.TypicalModelGuesser({});
-      tdg.guessDefnFromContent(data);
+      tdg.guessDefnFromContent(values);
       model = tdg.model;
     }
 
     const content = transformer(
       model!,
-      data,
-      contentIndex,
+      values,
       consoleErrorHandler,
     );
     const next = consume(content, contentIndex, model!);

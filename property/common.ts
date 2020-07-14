@@ -1,20 +1,21 @@
 import {
   PropertyDefn,
-  PropertyNameTransformer,
   PropertyName,
+  PropertyNameTransformer,
 } from "../property.ts";
+import * as v from "../values.ts";
 
 export function getSourceValueAndContinue(
   prop: PropertyDefn,
   srcPropName: PropertyName,
-  srcContent: { [propName: string]: any },
+  cvs: v.ContentValueSupplier,
 ): [any, boolean] {
   const required = typeof prop.valueRequired === "function"
     ? prop.valueRequired()
     : prop.valueRequired;
-  let srcValue = srcContent[srcPropName];
+  let srcValue = cvs.valueRaw;
   if (typeof srcValue === "function") {
-    srcValue = srcValue(prop, srcPropName, srcContent);
+    srcValue = srcValue(prop, srcPropName, cvs);
   }
   if (!required) {
     if (srcValue == null || srcValue == undefined) {
