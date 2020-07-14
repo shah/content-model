@@ -32,7 +32,7 @@ export class TextProperty implements PropertyDefn {
     srcPropName: PropertyName,
     cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object,
+    destination?: v.ContentValuesDestination,
     destFieldName?: PropertyNameTransformer,
   ): void {
     const [srcValue, required] = c.getSourceValueAndContinue(
@@ -54,7 +54,7 @@ export class TextProperty implements PropertyDefn {
     }
 
     if (destination) {
-      c.assignDest(this, srcPropName, srcValue, destination, destFieldName);
+      destination.assign(srcPropName, srcValue, destFieldName);
     }
   }
 }
@@ -88,7 +88,7 @@ export class ConstrainedTextProperty extends TextProperty {
     srcPropName: PropertyName,
     cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object,
+    destination?: { [name: string]: any },
     destFieldName?: PropertyNameTransformer,
   ): void {
     const [srcValue, required] = c.getSourceValueAndContinue(
@@ -120,7 +120,7 @@ export class ConstrainedTextProperty extends TextProperty {
       return;
     }
     if (destination) {
-      c.assignDest(this, srcPropName, srcValue, destination, destFieldName);
+      destination.assign(destFieldName || srcPropName, srcValue);
     }
   }
 

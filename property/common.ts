@@ -27,15 +27,3 @@ export function getSourceValueAndContinue(
   }
   return [srcValue, true];
 }
-
-export function assignDest(
-  prop: PropertyDefn,
-  srcPropName: PropertyName,
-  destValue: any,
-  destination: object,
-  destFieldName?: PropertyNameTransformer,
-): void {
-  const dest = destination as any;
-  const destName = destFieldName ? destFieldName(srcPropName) : srcPropName;
-  dest[destName] = destValue;
-}

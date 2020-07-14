@@ -34,7 +34,7 @@ export class BooleanProperty extends ConstrainedTextProperty {
     srcPropName: PropertyName,
     cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object,
+    destination?: v.ContentValuesDestination,
     destFieldName?: PropertyNameTransformer,
   ): void {
     const [srcValue, required] = c.getSourceValueAndContinue(
@@ -46,7 +46,7 @@ export class BooleanProperty extends ConstrainedTextProperty {
 
     if (typeof srcValue === "boolean") {
       if (destination) {
-        c.assignDest(this, srcPropName, srcValue, destination, destFieldName);
+        destination.assign(srcPropName, srcValue, destFieldName);
         return;
       }
     }
@@ -77,7 +77,7 @@ export class BooleanProperty extends ConstrainedTextProperty {
           srcValueLC === "on")
         ? true
         : false;
-      c.assignDest(this, srcPropName, destValue, destination, destFieldName);
+      destination.assign(srcPropName, destValue, destFieldName);
     }
   }
 

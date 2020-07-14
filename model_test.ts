@@ -3,10 +3,12 @@ import * as m from "./model.ts";
 
 Deno.test("Consume CSV (single row)", async () => {
   const csvName = "./model_test-single-row.csv";
+  let contentCount = 0;
   const model = await m.consumeCsvSourceWithHeader(
     csvName,
     (content: object, index: number, model: m.ContentModel): boolean => {
-      return false;
+      contentCount++;
+      return true;
     },
     m.typedContentTransformer,
   );
@@ -15,6 +17,7 @@ Deno.test("Consume CSV (single row)", async () => {
     13,
     `13 properties expected in ${csvName}`,
   );
+  a.assertEquals(contentCount, 1, `One row expected, not ${contentCount}`);
 });
 
 Deno.test("Consume CSV (simple)", async () => {

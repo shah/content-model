@@ -24,7 +24,7 @@ export abstract class NumericProperty implements PropertyDefn {
     srcPropName: PropertyName,
     cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object,
+    destination?: v.ContentValuesDestination,
     destFieldName?: PropertyNameTransformer,
   ): void;
 
@@ -69,7 +69,7 @@ export class IntegerProperty extends NumericProperty {
     srcPropName: PropertyName,
     cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object,
+    destination?: v.ContentValuesDestination,
     destFieldName?: PropertyNameTransformer,
   ): void {
     const [srcValue, required] = c.getSourceValueAndContinue(
@@ -81,13 +81,7 @@ export class IntegerProperty extends NumericProperty {
 
     if (typeof srcValue === "number") {
       if (destination) {
-        c.assignDest(
-          this,
-          srcPropName,
-          Math.round(srcValue),
-          destination,
-          destFieldName,
-        );
+        destination.assign(srcPropName, Math.round(srcValue), destFieldName);
         return;
       }
     }
@@ -114,7 +108,7 @@ export class IntegerProperty extends NumericProperty {
       return;
     }
     if (destination) {
-      c.assignDest(this, srcPropName, destValue, destination, destFieldName);
+      destination.assign(srcPropName, destValue, destFieldName);
     }
   }
 }
@@ -133,7 +127,7 @@ export class FloatProperty extends NumericProperty {
     srcPropName: PropertyName,
     cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object,
+    destination?: v.ContentValuesDestination,
     destFieldName?: PropertyNameTransformer,
   ): void {
     const [srcValue, required] = c.getSourceValueAndContinue(
@@ -145,13 +139,7 @@ export class FloatProperty extends NumericProperty {
 
     if (typeof srcValue === "number") {
       if (destination) {
-        c.assignDest(
-          this,
-          srcPropName,
-          srcValue,
-          destination,
-          destFieldName,
-        );
+        destination.assign(srcPropName, srcValue, destFieldName);
         return;
       }
     }
@@ -178,7 +166,7 @@ export class FloatProperty extends NumericProperty {
       return;
     }
     if (destination) {
-      c.assignDest(this, srcPropName, destValue, destination, destFieldName);
+      destination.assign(srcPropName, destValue, destFieldName);
     }
   }
 }

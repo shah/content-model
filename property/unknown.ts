@@ -30,7 +30,7 @@ export class UnknownProperty implements PropertyDefn {
     srcPropName: PropertyName,
     cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object,
+    destination?: { [name: string]: any },
     destFieldName?: PropertyNameTransformer,
   ): void {
     const srcValueRaw = cvs.valueRaw;

@@ -22,31 +22,35 @@ export interface ContentErrorHandler {
 export interface ContentTransformer {
   (
     model: ContentModel,
-    values: v.ContentValuesSupplier,
+    source: v.ContentValuesSupplier,
+    destination: v.ContentValuesDestination,
     eh: ContentErrorHandler,
     tranformFieldName?: p.PropertyNameTransformer,
-  ): object;
+  ): void;
 }
 
 export function typedContentTransformer(
   model: ContentModel,
-  values: v.ContentValuesSupplier,
+  source: v.ContentValuesSupplier,
+  destination: v.ContentValuesDestination,
   eh: ContentErrorHandler,
   tranformFieldName?: p.PropertyNameTransformer,
-): object {
-  const result: { [key: string]: any } = {};
+): void {
   for (const property of Object.entries(model)) {
     const propertyName = property[0];
     const propDefn = property[1];
+    const cvs: v.ContentValueSupplier = {
+      ...source,
+      valueRaw: source.valueByName(propertyName),
+    };
     propDefn.transformValue(
       propertyName,
-      values,
+      cvs,
       eh.reportPropertyError,
-      result,
+      destination,
       tranformFieldName,
     );
   }
-  return result;
 }
 
 export interface ContentConsumer {
@@ -114,9 +118,21 @@ export async function consumeCsvSourceWithHeader(
       model = tdg.model;
     }
 
-    const content = transformer(
+    const content: { [name: string]: any } = {};
+    transformer(
       model!,
       values,
+      {
+        contentIndex: contentIndex - 1,
+        assign: (
+          name: string,
+          value: any,
+          transform: (name: string) => string,
+        ): void => {
+          const valueName = transform ? transform(name) : name;
+          content[valueName] = value;
+        },
+      },
       consoleErrorHandler,
     );
     const next = consume(content, contentIndex, model!);

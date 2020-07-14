@@ -39,7 +39,7 @@ export interface PropertyValueTransformer {
     srcPropName: PropertyName,
     srcValues: v.ContentValuesSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object, // when not supplied, transform only validates
+    destination?: v.ContentValuesDestination, // when not supplied, transform only validates
     destFieldName?: PropertyNameTransformer,
   ): void;
 }

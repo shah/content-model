@@ -39,7 +39,7 @@ export class DateTimeProperty implements PropertyDefn {
     srcPropName: PropertyName,
     cvs: v.ContentValueSupplier,
     reportError: PropertyErrorHandler,
-    destination?: object,
+    destination?: v.ContentValuesDestination,
     destFieldName?: PropertyNameTransformer,
   ): void {
     const [srcValue, required] = c.getSourceValueAndContinue(
@@ -51,7 +51,7 @@ export class DateTimeProperty implements PropertyDefn {
 
     if (srcValue instanceof Date) {
       if (destination) {
-        c.assignDest(this, srcPropName, srcValue, destination, destFieldName);
+        destination.assign(srcPropName, srcValue, destFieldName);
         return;
       }
     }
@@ -94,13 +94,7 @@ export class DateTimeProperty implements PropertyDefn {
       return;
     }
     if (destination) {
-      c.assignDest(
-        this,
-        srcPropName,
-        dateTime.toDate(),
-        destination,
-        destFieldName,
-      );
+      destination.assign(srcPropName, dateTime.toDate(), destFieldName);
     }
   }
 

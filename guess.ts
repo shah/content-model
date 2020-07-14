@@ -234,7 +234,7 @@ export class TypicalModelGuesser implements ModelGuesser {
     colDefn: p.PropertyDefn,
     srcValues: v.ContentValuesSupplier,
     reportError: p.PropertyErrorHandler,
-    destination?: object,
+    destination?: v.ContentValuesDestination,
     destFieldName?: p.PropertyNameTransformer,
   ): boolean {
     // this method is called when a property is unknown (blank) in the initial guess
