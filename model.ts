@@ -1,4 +1,4 @@
-import { bufIO, csv } from "./deps.ts";
+import { stdBufIO, stdCSV as csv } from "./deps.ts";
 import * as g from "./guess.ts";
 import * as p from "./property.ts";
 import * as v from "./values.ts";
@@ -88,7 +88,7 @@ export async function consumeCsvSourceWithHeader(
   transformer: ContentTransformer = typedContentTransformer,
 ): Promise<ContentModel> {
   const f = await Deno.open(csvSource);
-  const matrix = await csv.readMatrix(new bufIO.BufReader(f));
+  const matrix = await csv.readMatrix(new stdBufIO.BufReader(f));
   f.close();
 
   const colIndexByName: { [key: string]: number } = {};

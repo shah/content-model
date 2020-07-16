@@ -1,4 +1,4 @@
-import { asserts as a } from "./deps.ts";
+import { stdAsserts as a } from "./deps.ts";
 import * as m from "./model.ts";
 
 Deno.test("Consume CSV (single row)", async () => {
