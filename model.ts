@@ -98,7 +98,7 @@ export async function consumeCsvSourceWithHeader(
   for (const row of matrix) {
     if (contentIndex == 0) {
       headerRow = row;
-      row.map((col, index) => colIndexByName[col] = index);
+      row.map((col: string, index: number) => colIndexByName[col] = index);
       contentIndex++;
       continue;
     }
