@@ -1,10 +1,16 @@
-import { stdAsserts as a } from "./deps.ts";
-import * as m from "./model.ts";
+import { stdAsserts as a } from "../deps.ts";
+import * as c from "./csv.ts";
+import * as m from "../model.ts";
+import * as io from "../io.ts";
+
+const pathsToCheck = [".", "csv"];
 
 Deno.test("Consume CSV (single row)", async () => {
-  const csvName = "./model_test-single-row.csv";
+  const csvName = io.findFileInPaths("./csv_test-single-row.csv", pathsToCheck);
+  a.assert(csvName);
+
   let contentCount = 0;
-  const model = await m.consumeCsvSourceWithHeader(
+  const model = await c.consumeCsvSourceWithHeader(
     csvName,
     (content: object, index: number, model: m.ContentModel): boolean => {
       contentCount++;
@@ -21,8 +27,10 @@ Deno.test("Consume CSV (single row)", async () => {
 });
 
 Deno.test("Consume CSV (simple)", async () => {
-  const csvName = "model_test-simple.csv";
-  const model = await m.consumeCsvSourceWithHeader(
+  const csvName = io.findFileInPaths("./csv_test-simple.csv", pathsToCheck);
+  a.assert(csvName);
+
+  const model = await c.consumeCsvSourceWithHeader(
     csvName,
     (content: object, index: number, model: m.ContentModel): boolean => {
       return false;
@@ -41,8 +49,10 @@ Deno.test("Consume CSV (simple)", async () => {
 });
 
 Deno.test("Consume CSV (complex)", async () => {
-  const csvName = "model_test-complex.csv";
-  const model = await m.consumeCsvSourceWithHeader(
+  const csvName = io.findFileInPaths("./csv_test-complex.csv", pathsToCheck);
+  a.assert(csvName);
+
+  const model = await c.consumeCsvSourceWithHeader(
     csvName,
     (content: object, index: number, model: m.ContentModel): boolean => {
       return true;
