@@ -1,3 +1,4 @@
+import { inflect } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
 import {
   PropertyDefn,
@@ -56,7 +57,7 @@ export abstract class NumericProperty implements PropertyDefn {
 }
 
 export class IntegerProperty extends NumericProperty {
-  readonly nature: PropertyNature = "Integer";
+  readonly nature: PropertyNature = inflect.guessCaseValue("Integer");
 
   get description(): string {
     const guessedFrom = this.guessedBy
@@ -91,7 +92,7 @@ export class IntegerProperty extends NumericProperty {
         srcPropName,
         srcValue,
         cvs,
-        `[IntegerProperty] ${this.nature} property values must be either a number or parseable string (not ${typeof srcValue})`,
+        `[IntegerProperty] ${this.nature.inflect()} property values must be either a number or parseable string (not ${typeof srcValue})`,
       );
       return;
     }
@@ -103,7 +104,7 @@ export class IntegerProperty extends NumericProperty {
         srcPropName,
         destValue,
         cvs,
-        `[IntegerProperty] ${this.nature} property values must be parseable as an integer`,
+        `[IntegerProperty] ${this.nature.inflect()} property values must be parseable as an integer`,
       );
       return;
     }
@@ -114,7 +115,7 @@ export class IntegerProperty extends NumericProperty {
 }
 
 export class FloatProperty extends NumericProperty {
-  readonly nature: PropertyNature = "Float";
+  readonly nature: PropertyNature = inflect.guessCaseValue("Float");
 
   get description(): string {
     const guessedFrom = this.guessedBy
@@ -149,7 +150,7 @@ export class FloatProperty extends NumericProperty {
         srcPropName,
         srcValue,
         cvs,
-        `[FloatProperty] ${this.nature} property values must be either a number or parseable string (not ${typeof srcValue})`,
+        `[FloatProperty] ${this.nature.inflect()} property values must be either a number or parseable string (not ${typeof srcValue})`,
       );
       return;
     }
@@ -161,7 +162,7 @@ export class FloatProperty extends NumericProperty {
         srcPropName,
         destValue,
         cvs,
-        `[FloatProperty] ${this.nature} property values must be parseable as a float`,
+        `[FloatProperty] ${this.nature.inflect()} property values must be parseable as a float`,
       );
       return;
     }

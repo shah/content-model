@@ -1,3 +1,4 @@
+import { inflect } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
 import {
   PropertyDefn,
@@ -10,7 +11,7 @@ import {
 import * as v from "../values.ts";
 
 export class UnknownProperty implements PropertyDefn {
-  readonly nature: PropertyNature = "Unknown";
+  readonly nature: PropertyNature = inflect.guessCaseValue("Unknown");
   readonly valueRequired: PropertyValueRequired = false;
   private guessedAgain: number = 0;
 
@@ -43,7 +44,6 @@ export class UnknownProperty implements PropertyDefn {
       const newGuess = this.guessedBy.modelGuesser.guessPropertyDefn(
         cvs,
         srcPropName,
-        srcValueRaw,
       );
       this.guessedAgain++;
       if (newGuess && !(newGuess instanceof UnknownProperty)) {

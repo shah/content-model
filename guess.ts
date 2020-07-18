@@ -9,6 +9,8 @@ import {
   TextProperty,
 } from "./property/text.ts";
 import { UnknownProperty } from "./property/unknown.ts";
+import { ObjectProperty } from "./property/object.ts";
+import { ObjectArrayProperty } from "./property/array.ts";
 import * as v from "./values.ts";
 
 export interface GuessPropertyDefnSupplier {
@@ -93,7 +95,10 @@ export class TypicalPropertyDefnGuesser implements PropertyDefnGuesser {
     result = ConstrainedTextProperty.isConstrainedText(guessFrom, this);
     if (result) return result;
 
-    result = DateTimeProperty.isDateTime(guessFrom, this);
+    result = ObjectArrayProperty.isArray(guessFrom, this);
+    if (result) return result;
+
+    result = ObjectProperty.isObject(guessFrom, this);
     if (result) return result;
 
     return this.defaultPropertyDefn();
@@ -101,11 +106,12 @@ export class TypicalPropertyDefnGuesser implements PropertyDefnGuesser {
 }
 
 export interface ModelGuesserOptions {
-  skipProperties?: { [key: string]: () => boolean | boolean };
-  overrideDefns?: {
+  readonly keepOnlyProperties?: { [key: string]: () => boolean | boolean };
+  readonly skipProperties?: { [key: string]: () => boolean | boolean };
+  readonly forcePropertyDefn?: {
     [key: string]: () => p.PropertyDefn | p.PropertyDefn;
   };
-  requirePropertyValue?: { [key: string]: p.PropertyValueRequired };
+  readonly requirePropertyValue?: { [key: string]: p.PropertyValueRequired };
   confirmGuess?(
     propName: p.PropertyName,
     guessedDefn: p.PropertyDefn,
@@ -117,11 +123,13 @@ export interface ModelGuesserOptions {
 export interface ModelGuesser extends ModelGuesserOptions {
   readonly model: m.ContentModel;
 
-  guessDefnFromContent(content: { [key: string]: any }): void;
+  guessKeyValueModel(
+    content: { [key: string]: any },
+  ): m.ContentModel | undefined;
+  guessDefnFromContent(cvs: v.ContentValuesSupplier): void;
   guessPropertyDefn(
     srcValue: v.ContentValueSupplier,
     srcPropName: p.PropertyName,
-    guessFromValue: string,
   ): p.PropertyDefn | undefined;
 
   unknowableFromInitialGuess?(
@@ -141,9 +149,9 @@ export interface ModelGuesser extends ModelGuesserOptions {
 
 export class TypicalModelGuesser implements ModelGuesser {
   readonly model: m.ContentModel = {};
-  readonly keepProperties?: { [key: string]: () => boolean | boolean };
+  readonly keepOnlyProperties?: { [key: string]: () => boolean | boolean };
   readonly skipProperties?: { [key: string]: () => boolean | boolean };
-  readonly overrideDefns?: {
+  readonly forcePropertyDefn?: {
     [key: string]: () => p.PropertyDefn | p.PropertyDefn;
   };
   readonly requirePropertyValue?: { [key: string]: p.PropertyValueRequired };
@@ -156,14 +164,16 @@ export class TypicalModelGuesser implements ModelGuesser {
 
   constructor(
     {
+      keepOnlyProperties,
       skipProperties,
-      overrideDefns,
+      forcePropertyDefn: overrideDefns,
       requirePropertyValue,
       confirmGuess,
     }: ModelGuesserOptions,
   ) {
+    this.keepOnlyProperties = keepOnlyProperties;
     this.skipProperties = skipProperties;
-    this.overrideDefns = overrideDefns;
+    this.forcePropertyDefn = overrideDefns;
     this.requirePropertyValue = requirePropertyValue;
     this.confirmGuess = confirmGuess;
   }
@@ -179,19 +189,17 @@ export class TypicalModelGuesser implements ModelGuesser {
       }
     }
 
-    if (this.keepProperties) {
-      const keep = this.keepProperties[srcPropName];
+    if (this.keepOnlyProperties) {
+      const keep = this.keepOnlyProperties[srcPropName];
       if (!(typeof keep === "function" ? keep() : keep)) {
         return undefined;
       }
     }
 
-    const overrideDefn = this.overrideDefns &&
-      this.overrideDefns[srcPropName];
-    if (overrideDefn) {
-      return (typeof overrideDefn === "function"
-        ? overrideDefn()
-        : overrideDefn);
+    const forceDefn = this.forcePropertyDefn &&
+      this.forcePropertyDefn[srcPropName];
+    if (forceDefn) {
+      return (typeof forceDefn === "function" ? forceDefn() : forceDefn);
     }
 
     const propGuesser = new TypicalPropertyDefnGuesser(
@@ -250,5 +258,35 @@ export class TypicalModelGuesser implements ModelGuesser {
       destFieldName,
     );
     return true;
+  }
+
+  guessKeyValueModel(
+    content: { [key: string]: any },
+  ): m.ContentModel | undefined {
+    if (!content) {
+      return undefined;
+    }
+
+    const cvs: v.ContentValuesSupplier = {
+      contentIndex: 0,
+      valueNames: Object.keys(content),
+      valueByName: (name: string): any => {
+        return content[name];
+      },
+    };
+
+    const model: m.ContentModel = {};
+    for (const propName of Object.getOwnPropertyNames(content)) {
+      const value = content[propName];
+      const guessed = this.guessPropertyDefn(
+        { ...cvs, valueRaw: value },
+        propName,
+      );
+      if (guessed) {
+        model[propName] = guessed;
+      }
+    }
+
+    return model;
   }
 }

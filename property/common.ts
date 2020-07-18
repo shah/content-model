@@ -1,9 +1,9 @@
 import {
   PropertyDefn,
   PropertyName,
-  PropertyNameTransformer,
 } from "../property.ts";
 import * as v from "../values.ts";
+import * as m from "../model.ts";
 
 export function getSourceValueAndContinue(
   prop: PropertyDefn,

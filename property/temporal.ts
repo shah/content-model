@@ -1,3 +1,4 @@
+import { inflect } from "../deps.ts";
 import { moment } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
 import {
@@ -16,7 +17,7 @@ export interface DateConstraint {
 }
 
 export class DateTimeProperty implements PropertyDefn {
-  readonly nature: PropertyNature = "DateTime";
+  readonly nature: PropertyNature = inflect.guessCaseValue("DateTime");
 
   constructor(
     readonly valueRequired: PropertyValueRequired,
@@ -62,7 +63,7 @@ export class DateTimeProperty implements PropertyDefn {
         srcPropName,
         srcValue,
         cvs,
-        `[DateTimeProperty] ${this.nature} property values must be either a Date or string (not ${typeof srcValue})`,
+        `[DateTimeProperty] ${this.nature.inflect()} property values must be either a Date or string (not ${typeof srcValue})`,
       );
       return;
     }
@@ -73,7 +74,7 @@ export class DateTimeProperty implements PropertyDefn {
         srcPropName,
         srcValue,
         cvs,
-        `[DateTimeProperty] ${this.nature} property is a string but no MomentJS date format supplied.`,
+        `[DateTimeProperty] ${this.nature.inflect()} property is a string but no MomentJS date format supplied.`,
       );
       return;
     }
@@ -89,7 +90,7 @@ export class DateTimeProperty implements PropertyDefn {
         srcPropName,
         srcValue,
         cvs,
-        `[DateTimeProperty] ${this.nature} property values must be formatted as '${this.momentFormat}'`,
+        `[DateTimeProperty] ${this.nature.inflect()} property values must be formatted as '${this.momentFormat}'`,
       );
       return;
     }

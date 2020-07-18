@@ -1,3 +1,4 @@
+import { inflect } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
 import {
   PropertyErrorHandler,
@@ -8,19 +9,23 @@ import {
 } from "../property.ts";
 import * as v from "../values.ts";
 import * as c from "./common.ts";
-import { ConstrainedTextProperty } from "./text.ts";
+import { ConstrainedTextProperty, RegExpConstraint } from "./text.ts";
 
 export class BooleanProperty extends ConstrainedTextProperty {
-  readonly nature: PropertyNature = "Boolean";
+  public static booleanNatureName = inflect.guessCaseValue("Boolean");
 
   constructor(
     readonly valueRequired: PropertyValueRequired,
     readonly guessedBy?: PropertyDefnGuesser,
   ) {
     super(valueRequired, {
-      constraintName: "Boolean Value",
+      constraintName: BooleanProperty.booleanNatureName,
       regExp: /^(yes|no|true|false|on|off|0|1)$/,
-    });
+    } as RegExpConstraint);
+  }
+
+  get nature(): PropertyNature {
+    return BooleanProperty.booleanNatureName;
   }
 
   get description(): string {
@@ -56,17 +61,17 @@ export class BooleanProperty extends ConstrainedTextProperty {
         srcPropName,
         srcValue,
         cvs,
-        `[BooleanProperty] ${this.nature} property values must be either a boolean or string (not ${typeof srcValue})`,
+        `[BooleanProperty] ${this.nature.inflect()} property values must be either a boolean or string (not ${typeof srcValue})`,
       );
       return;
     }
-    if (!this.constraint.regExp.test(srcValue)) {
+    if (!this.constraint.matchesConstraint(srcValue)) {
       reportError(
         this,
         srcPropName,
         srcValue,
         cvs,
-        `[BooleanProperty] ${this.nature} property values must be a string (yes, no, on, off, 0, 1, true, or false)`,
+        `[BooleanProperty] ${this.nature.inflect()} property values must be a string (yes, no, on, off, 0, 1, true, or false)`,
       );
       return;
     }

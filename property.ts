@@ -15,7 +15,7 @@ export interface PropertyErrorHandler {
 }
 
 export type PropertyName = string;
-export type PropertyNature = string;
+export type PropertyNature = inflect.InflectableValue;
 
 export interface PropertyNameTransformer {
   (srcPropName: PropertyName): PropertyName;
