@@ -80,7 +80,7 @@ export class RegExpConstraint implements RegExpConstraint {
   get description(): string {
     const regExpText = `${this.regExp}`;
     return `Any text that matches RegExp ${
-      regExpText.length > 25 ? regExpText.substr(0, 25) : regExpText
+      regExpText.length > 75 ? regExpText.substr(0, 75) + "...." : regExpText
     }`;
   }
 
