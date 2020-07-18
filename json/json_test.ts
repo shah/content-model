@@ -25,5 +25,5 @@ Deno.test("Consume JSON object array", async () => {
     `27 properties expected in ${srcName}, not ${Object.keys(model).length}`,
   );
   a.assertEquals(contentCount, 1, `One rows expected, not ${contentCount}`);
-  console.dir(model);
+  //console.dir(model);
 });
