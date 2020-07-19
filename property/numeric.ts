@@ -2,14 +2,10 @@ import { inflect } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
 import {
   PropertyDefn,
-  PropertyErrorHandler,
-  PropertyName,
-  PropertyNameTransformer,
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
 import * as v from "../values.ts";
-import * as c from "./common.ts";
 
 export abstract class NumericProperty implements PropertyDefn {
   abstract readonly nature: PropertyNature;
@@ -22,15 +18,13 @@ export abstract class NumericProperty implements PropertyDefn {
   }
 
   abstract transformValue(
-    srcPropName: PropertyName,
-    cvs: v.ContentValueSupplier,
-    reportError: PropertyErrorHandler,
-    destination?: v.ContentValuesDestination,
-    destFieldName?: PropertyNameTransformer,
+    pvs: v.PropertyValueSupplier,
+    pipe: v.ValuePipe,
+    tr: v.ValueTransformer,
   ): void;
 
   static isNumber(
-    guessFrom: v.ContentValueSupplier,
+    guessFrom: v.ValueSupplier,
     guesser: PropertyDefnGuesser,
   ): NumericProperty | false {
     const valueRaw = guessFrom.valueRaw;
@@ -61,37 +55,28 @@ export class IntegerProperty extends NumericProperty {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.sourceCVS.contentIndex})`
       : " (supplied)";
     return `Any text that can be converted to an integer value${guessedFrom}`;
   }
 
   transformValue(
-    srcPropName: PropertyName,
-    cvs: v.ContentValueSupplier,
-    reportError: PropertyErrorHandler,
-    destination?: v.ContentValuesDestination,
-    destFieldName?: PropertyNameTransformer,
+    pvs: v.PropertyValueSupplier,
+    pipe: v.ValuePipe,
+    tr: v.ValueTransformer,
   ): void {
-    const [srcValue, required] = c.getSourceValueAndContinue(
-      this,
-      srcPropName,
-      cvs,
-    );
+    const [srcValue, required] = v.getSourceValueAndContinue(pvs);
     if (!required) return;
 
     if (typeof srcValue === "number") {
-      if (destination) {
-        destination.assign(srcPropName, Math.round(srcValue), destFieldName);
+      if (pipe.destination) {
+        pipe.destination.assign(pvs.propName, Math.round(srcValue));
         return;
       }
     }
     if (!(typeof srcValue === "string")) {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[IntegerProperty] ${this.nature.inflect()} property values must be either a number or parseable string (not ${typeof srcValue})`,
       );
       return;
@@ -99,17 +84,14 @@ export class IntegerProperty extends NumericProperty {
 
     const destValue = parseInt(srcValue);
     if (typeof destValue !== "number") {
-      reportError(
-        this,
-        srcPropName,
-        destValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[IntegerProperty] ${this.nature.inflect()} property values must be parseable as an integer`,
       );
       return;
     }
-    if (destination) {
-      destination.assign(srcPropName, destValue, destFieldName);
+    if (pipe.destination) {
+      pipe.destination.assign(pvs.propName, destValue);
     }
   }
 }
@@ -119,37 +101,28 @@ export class FloatProperty extends NumericProperty {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.sourceCVS.contentIndex})`
       : " (supplied)";
     return `Any text that can be converted to a float value${guessedFrom}`;
   }
 
   transformValue(
-    srcPropName: PropertyName,
-    cvs: v.ContentValueSupplier,
-    reportError: PropertyErrorHandler,
-    destination?: v.ContentValuesDestination,
-    destFieldName?: PropertyNameTransformer,
+    pvs: v.PropertyValueSupplier,
+    pipe: v.ValuePipe,
+    tr: v.ValueTransformer,
   ): void {
-    const [srcValue, required] = c.getSourceValueAndContinue(
-      this,
-      srcPropName,
-      cvs,
-    );
+    const [srcValue, required] = v.getSourceValueAndContinue(pvs);
     if (!required) return;
 
     if (typeof srcValue === "number") {
-      if (destination) {
-        destination.assign(srcPropName, srcValue, destFieldName);
+      if (pipe.destination) {
+        pipe.destination.assign(pvs.propName, srcValue);
         return;
       }
     }
     if (!(typeof srcValue === "string")) {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[FloatProperty] ${this.nature.inflect()} property values must be either a number or parseable string (not ${typeof srcValue})`,
       );
       return;
@@ -157,17 +130,14 @@ export class FloatProperty extends NumericProperty {
 
     const destValue = parseFloat(srcValue);
     if (typeof destValue !== "number") {
-      reportError(
-        this,
-        srcPropName,
-        destValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[FloatProperty] ${this.nature.inflect()} property values must be parseable as a float`,
       );
       return;
     }
-    if (destination) {
-      destination.assign(srcPropName, destValue, destFieldName);
+    if (pipe.destination) {
+      pipe.destination.assign(pvs.propName, destValue);
     }
   }
 }

@@ -1,48 +1,31 @@
 import * as g from "../guess.ts";
 import * as m from "../model.ts";
+import * as p from "../property.ts";
 import * as v from "../values.ts";
 
 export async function consumeJsonArrayWithFirstRowAsModel(
   sourceJSON: { [key: string]: any }[],
   consume: m.ContentConsumer,
-  transformer: m.ContentTransformer = m.typedContentTransformer,
 ): Promise<m.ContentModel | undefined> {
   if (sourceJSON.length == 0) {
     return undefined;
   }
 
   const modelSource = sourceJSON[0];
+  const sourceCVS = v.objectValuesSupplier(modelSource);
   const tdg = new g.TypicalModelGuesser({});
-  const values: v.ContentValuesSupplier = {
-    contentIndex: 0,
-    valueNames: Object.keys(modelSource),
-    valueByName: (name: string): any => {
-      return modelSource[name];
-    },
-  };
-  tdg.guessDefnFromContent(values);
-  const model = tdg.model;
+  const model = tdg.guessDefnFromValues(sourceCVS);
+  const tr = new v.ObjectValueTransformer(
+    model,
+    { transformPropName: p.camelCasePropertyName },
+  );
 
   let contentIndex = 0;
   for (const row of sourceJSON) {
-    const content: { [name: string]: any } = {};
-    transformer(
-      model,
-      values,
-      {
-        contentIndex: contentIndex - 1,
-        assign: (
-          name: string,
-          value: any,
-          transform: (name: string) => string,
-        ): void => {
-          const valueName = transform ? transform(name) : name;
-          content[valueName] = value;
-        },
-      },
-      m.consoleErrorHandler,
-    );
-    const next = consume(content, contentIndex, model!);
+    const rowCVS = v.objectValuesSupplier(row, contentIndex);
+    const pipe = v.objectPipe(rowCVS, tr.transformPropName);
+    tr.transformValues(pipe);
+    const next = consume(pipe.instance, contentIndex, model!);
     if (!next) break;
     contentIndex++;
   }
@@ -52,20 +35,17 @@ export async function consumeJsonArrayWithFirstRowAsModel(
 export async function consumeJsonWithFirstRowAsModel(
   sourceJSON: object | object[],
   consume: m.ContentConsumer,
-  transformer: m.ContentTransformer = m.typedContentTransformer,
 ): Promise<m.ContentModel | undefined> {
   if (Array.isArray(sourceJSON)) {
     return consumeJsonArrayWithFirstRowAsModel(
       sourceJSON,
       consume,
-      transformer,
     );
   } else {
     if (typeof sourceJSON === "object") {
       return consumeJsonArrayWithFirstRowAsModel(
         [sourceJSON],
         consume,
-        transformer,
       );
     } else {
       console.error(
@@ -79,7 +59,6 @@ export async function consumeJsonWithFirstRowAsModel(
 export async function consumeJsonFileWithFirstRowAsModel(
   jsonSource: string,
   consume: m.ContentConsumer,
-  transformer: m.ContentTransformer = m.typedContentTransformer,
 ): Promise<m.ContentModel | undefined> {
   const text = await Deno.readTextFile(jsonSource);
   const sourceJSON = JSON.parse(text);
@@ -89,5 +68,8 @@ export async function consumeJsonFileWithFirstRowAsModel(
     return undefined;
   }
 
-  return consumeJsonWithFirstRowAsModel(sourceJSON, consume, transformer);
+  return consumeJsonWithFirstRowAsModel(
+    sourceJSON,
+    consume,
+  );
 }

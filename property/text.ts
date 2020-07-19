@@ -1,15 +1,11 @@
-import { inflect, valueMgr as vm } from "../deps.ts";
+import { inflect } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
 import {
   PropertyDefn,
-  PropertyErrorHandler,
-  PropertyName,
-  PropertyNameTransformer,
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
 import * as v from "../values.ts";
-import * as c from "./common.ts";
 
 export class TextProperty implements PropertyDefn {
   constructor(
@@ -24,38 +20,29 @@ export class TextProperty implements PropertyDefn {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.sourceCVS.contentIndex})`
       : " (assigned)";
     return `Any arbitrary text${guessedFrom}`;
   }
 
   transformValue(
-    srcPropName: PropertyName,
-    cvs: v.ContentValueSupplier,
-    reportError: PropertyErrorHandler,
-    destination?: v.ContentValuesDestination,
-    destFieldName?: PropertyNameTransformer,
+    pvs: v.PropertyValueSupplier,
+    pipe: v.ValuePipe,
+    tr: v.ValueTransformer,
   ): void {
-    const [srcValue, required] = c.getSourceValueAndContinue(
-      this,
-      srcPropName,
-      cvs,
-    );
+    const [srcValue, required] = v.getSourceValueAndContinue(pvs);
     if (!required) return;
 
     if (!(typeof srcValue === "string")) {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[TextProperty] ${this.nature.inflect()} property values must be a string (not ${typeof srcValue})`,
       );
       return;
     }
 
-    if (destination) {
-      destination.assign(srcPropName, srcValue, destFieldName);
+    if (pipe.destination) {
+      pipe.destination.assign(pvs.propName, srcValue);
     }
   }
 }
@@ -104,48 +91,37 @@ export class ConstrainedTextProperty extends TextProperty {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.sourceCVS.contentIndex})`
       : " (supplied)";
     return `${this.constraint.description}${guessedFrom}`;
   }
 
   transformValue(
-    srcPropName: PropertyName,
-    cvs: v.ContentValueSupplier,
-    reportError: PropertyErrorHandler,
-    destination?: { [name: string]: any },
-    destFieldName?: PropertyNameTransformer,
+    pvs: v.PropertyValueSupplier,
+    pipe: v.ValuePipe,
+    tr: v.ValueTransformer,
   ): void {
-    const [srcValue, required] = c.getSourceValueAndContinue(
-      this,
-      srcPropName,
-      cvs,
-    );
+    const [srcValue, required] = v.getSourceValueAndContinue(pvs);
     if (!required) return;
 
     if (!(typeof srcValue === "string")) {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[ConstrainedTextProperty] ${this.nature.inflect()} property values must be a string (not ${typeof srcValue})`,
       );
       return;
     }
 
     if (!this.constraint.matchesConstraint(srcValue)) {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[ConstrainedTextProperty] ${this.nature.inflect()} property values must be: ${this.constraint.description}`,
       );
       return;
     }
-    if (destination) {
-      destination.assign(destFieldName || srcPropName, srcValue);
+
+    if (pipe.destination) {
+      pipe.destination.assign(pvs.propName, srcValue);
     }
   }
 
@@ -177,7 +153,7 @@ export class ConstrainedTextProperty extends TextProperty {
   ];
 
   static isConstrainedText(
-    guessFrom: v.ContentValueSupplier,
+    guessFrom: v.ValueSupplier,
     guesser: PropertyDefnGuesser,
   ): ConstrainedTextProperty | false {
     const valueRaw = guessFrom.valueRaw;

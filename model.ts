@@ -5,6 +5,15 @@ export interface ContentModel {
   [propertyName: string]: p.PropertyDefn;
 }
 
+export interface ContentModelSupplier {
+  readonly isContentModelSupplier: true;
+  readonly model: ContentModel;
+}
+
+export function isContentModelSupplier(o: any): o is ContentModelSupplier {
+  return "isContentModelSupplier" in o;
+}
+
 export type ContentErrorMessage = string;
 
 export interface ContentErrorHandler {
@@ -17,54 +26,17 @@ export interface ContentErrorHandler {
   ): void;
 }
 
-export interface ContentTransformer {
-  (
-    model: ContentModel,
-    source: v.ContentValuesSupplier,
-    destination: v.ContentValuesDestination,
-    eh: ContentErrorHandler,
-    tranformFieldName?: p.PropertyNameTransformer,
-  ): void;
-}
-
-export function typedContentTransformer(
-  model: ContentModel,
-  source: v.ContentValuesSupplier,
-  destination: v.ContentValuesDestination,
-  eh: ContentErrorHandler,
-  tranformFieldName?: p.PropertyNameTransformer,
-): void {
-  for (const property of Object.entries(model)) {
-    const propertyName = property[0];
-    const propDefn = property[1];
-    const cvs: v.ContentValueSupplier = {
-      ...source,
-      valueRaw: source.valueByName(propertyName),
-    };
-    propDefn.transformValue(
-      propertyName,
-      cvs,
-      eh.reportPropertyError,
-      destination,
-      tranformFieldName,
-    );
-  }
-}
-
 export interface ContentConsumer {
   (content: object, index: number, model: ContentModel): boolean;
 }
 
 export class ConsoleErrorHandler implements ContentErrorHandler {
   reportPropertyError(
-    propDefn: p.PropertyDefn,
-    propName: string,
-    propValue: any,
-    cvs: v.ContentValuesSupplier,
+    pvs: v.PropertyValueSupplier,
     message: p.PropertyErrorMessage,
   ): void {
     console.log(
-      `[Item ${cvs.contentIndex} ${propName}]: ${propValue} (${message})`,
+      `[Item ${pvs.sourceCVS.contentIndex} ${pvs.propName}]: ${pvs.valueRaw} (${message})`,
     );
   }
 

@@ -1,7 +1,7 @@
 import { stdAsserts as a } from "../deps.ts";
-import * as c from "./csv.ts";
-import * as m from "../model.ts";
 import * as io from "../io.ts";
+import * as m from "../model.ts";
+import * as c from "./csv.ts";
 
 const pathsToCheck = [".", "./delimited"];
 
@@ -16,8 +16,8 @@ Deno.test("Consume CSV (single row)", async () => {
       contentCount++;
       return true;
     },
-    m.typedContentTransformer,
   );
+  a.assert(model);
   a.assertEquals(
     Object.keys(model).length,
     13,
@@ -30,13 +30,15 @@ Deno.test("Consume CSV (simple)", async () => {
   const srcName = io.findFileInPaths("./csv_test-simple.csv", pathsToCheck);
   a.assert(srcName);
 
+  let contentCount = 0;
   const model = await c.consumeCsvSourceWithHeader(
     srcName,
     (content: object, index: number, model: m.ContentModel): boolean => {
-      return false;
+      contentCount++;
+      return true;
     },
-    m.typedContentTransformer,
   );
+  a.assert(model);
   a.assertEquals(
     Object.keys(model).length,
     4,
@@ -52,13 +54,15 @@ Deno.test("Consume CSV (complex)", async () => {
   const srcName = io.findFileInPaths("./csv_test-complex.csv", pathsToCheck);
   a.assert(srcName);
 
+  let contentCount = 0;
   const model = await c.consumeCsvSourceWithHeader(
     srcName,
     (content: object, index: number, model: m.ContentModel): boolean => {
+      contentCount++;
       return true;
     },
-    m.typedContentTransformer,
   );
+  a.assert(model);
   a.assertEquals(
     Object.keys(model).length,
     80,

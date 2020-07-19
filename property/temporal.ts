@@ -1,16 +1,11 @@
-import { inflect } from "../deps.ts";
-import { moment } from "../deps.ts";
+import { inflect, moment } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
 import {
   PropertyDefn,
-  PropertyErrorHandler,
-  PropertyName,
-  PropertyNameTransformer,
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
 import * as v from "../values.ts";
-import * as c from "./common.ts";
 
 export interface DateConstraint {
   readonly tryMomentFormat: string;
@@ -29,7 +24,7 @@ export class DateTimeProperty implements PropertyDefn {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.sourceCVS.contentIndex})`
       : " (supplied)";
     return this.momentFormat
       ? `Any text that matches MomentJS date format '${this.momentFormat}'${guessedFrom}`
@@ -37,43 +32,31 @@ export class DateTimeProperty implements PropertyDefn {
   }
 
   transformValue(
-    srcPropName: PropertyName,
-    cvs: v.ContentValueSupplier,
-    reportError: PropertyErrorHandler,
-    destination?: v.ContentValuesDestination,
-    destFieldName?: PropertyNameTransformer,
+    pvs: v.PropertyValueSupplier,
+    pipe: v.ValuePipe,
+    tr: v.ValueTransformer,
   ): void {
-    const [srcValue, required] = c.getSourceValueAndContinue(
-      this,
-      srcPropName,
-      cvs,
-    );
+    const [srcValue, required] = v.getSourceValueAndContinue(pvs);
     if (!required) return;
 
     if (srcValue instanceof Date) {
-      if (destination) {
-        destination.assign(srcPropName, srcValue, destFieldName);
+      if (pipe.destination) {
+        pipe.destination.assign(pvs.propName, srcValue);
         return;
       }
     }
 
     if (!(typeof srcValue === "string")) {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[DateTimeProperty] ${this.nature.inflect()} property values must be either a Date or string (not ${typeof srcValue})`,
       );
       return;
     }
 
     if (!this.momentFormat) {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[DateTimeProperty] ${this.nature.inflect()} property is a string but no MomentJS date format supplied.`,
       );
       return;
@@ -85,17 +68,14 @@ export class DateTimeProperty implements PropertyDefn {
       true,
     );
     if (!dateTime.isValid()) {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[DateTimeProperty] ${this.nature.inflect()} property values must be formatted as '${this.momentFormat}'`,
       );
       return;
     }
-    if (destination) {
-      destination.assign(srcPropName, dateTime.toDate(), destFieldName);
+    if (pipe.destination) {
+      pipe.destination.assign(pvs.propName, dateTime.toDate());
     }
   }
 
@@ -104,13 +84,15 @@ export class DateTimeProperty implements PropertyDefn {
     { tryMomentFormat: "DD/MM/YYYY" },
     { tryMomentFormat: "YYYY-MM-DD HH:MM:SS" },
     { tryMomentFormat: "YYYY-MM-DD HH:MM:SSZ" },
+    { tryMomentFormat: "YYYY-MM-DD HH:MM:SS UTC" },
+    { tryMomentFormat: "ddd MMM DD HH:mm:ss UTC YYYY" },
     { tryMomentFormat: "ddd MMM DD HH:mm:ss UTC YYYY" },
     { tryMomentFormat: moment.moment.ISO_8601 },
     { tryMomentFormat: moment.moment.RFC_2822 },
   ];
 
   static isDateTime(
-    guessFrom: v.ContentValueSupplier,
+    guessFrom: v.ValueSupplier,
     options: PropertyDefnGuesser,
   ): DateTimeProperty | false {
     const valueRaw = guessFrom.valueRaw;

@@ -5,13 +5,7 @@ import * as v from "./values.ts";
 export type PropertyErrorMessage = string;
 
 export interface PropertyErrorHandler {
-  (
-    propDefn: PropertyDefn,
-    propName: string,
-    propValue: any,
-    cvs: v.ContentValueSupplier,
-    message: PropertyErrorMessage,
-  ): void;
+  (pvs: v.PropertyValueSupplier, message: PropertyErrorMessage): void;
 }
 
 export type PropertyName = string;
@@ -36,11 +30,9 @@ export type PropertyValueRequired = boolean | (() => boolean);
 
 export interface PropertyValueTransformer {
   transformValue(
-    srcPropName: PropertyName,
-    srcValues: v.ContentValuesSupplier,
-    reportError: PropertyErrorHandler,
-    destination?: v.ContentValuesDestination, // when not supplied, transform only validates
-    destFieldName?: PropertyNameTransformer,
+    pvs: v.PropertyValueSupplier,
+    pipe: v.ValuePipe,
+    tr: v.ValueTransformer,
   ): void;
 }
 

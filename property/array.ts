@@ -1,18 +1,16 @@
 import { inflect } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
+import * as m from "../model.ts";
 import {
   PropertyDefn,
-  PropertyErrorHandler,
-  PropertyName,
-  PropertyNameTransformer,
   PropertyNature,
   PropertyValueRequired,
 } from "../property.ts";
 import * as v from "../values.ts";
-import * as c from "./common.ts";
-import * as m from "../model.ts";
 
-export class ObjectArrayProperty implements PropertyDefn {
+export class ObjectArrayProperty
+  implements m.ContentModelSupplier, PropertyDefn {
+  readonly isContentModelSupplier = true;
   readonly nature: PropertyNature = inflect.guessCaseValue("Array");
 
   constructor(
@@ -24,74 +22,47 @@ export class ObjectArrayProperty implements PropertyDefn {
 
   get description(): string {
     const guessedFrom = this.guessedBy
-      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.contentIndex})`
+      ? ` (guessed from '${this.guessedBy.srcPropName}' row ${this.guessedBy.guessFromValue.sourceCVS.contentIndex})`
       : " (supplied)";
     return `Object instance${guessedFrom}`;
   }
 
   transformValue(
-    srcPropName: PropertyName,
-    cvs: v.ContentValueSupplier,
-    reportError: PropertyErrorHandler,
-    destination?: v.ContentValuesDestination,
-    destFieldName?: PropertyNameTransformer,
+    pvs: v.PropertyValueSupplier,
+    pipe: v.ValuePipe,
+    tr: v.ValueTransformer,
   ): void {
-    const [srcValue, required] = c.getSourceValueAndContinue(
-      this,
-      srcPropName,
-      cvs,
-    );
+    const [srcValue, required] = v.getSourceValueAndContinue(pvs);
     if (!required) return;
 
     let itemIndex = 0;
     if (Array.isArray(srcValue)) {
-      for (const sv of srcValue) {
-        if (!(typeof sv === "object")) {
-          reportError(
-            this,
-            srcPropName,
-            srcValue,
-            cvs,
+      const children: object[] = [];
+      for (const childItemValue of srcValue) {
+        if (!(typeof childItemValue === "object")) {
+          tr.onPropError(
+            pvs,
             `[ObjectArrayProperty] ${this.nature.inflect()} item values must be an object (${itemIndex} is a ${typeof srcValue})`,
           );
           continue;
         }
 
-        const svCVS: v.ContentValuesSupplier = {
-          contentIndex: itemIndex,
-          valueNames: Object.keys(sv),
-          valueByName: (name: string): any => {
-            return sv[name];
-          },
-        };
-
-        const children: { [name: string]: any } = {};
-        m.typedContentTransformer(
-          this.model,
-          svCVS,
-          {
-            contentIndex: svCVS.contentIndex,
-            assign: (
-              name: string,
-              value: any,
-              transform: (name: string) => string,
-            ): void => {
-              const valueName = transform ? transform(name) : name;
-              children[valueName] = value;
-            },
-          },
-          m.consoleErrorHandler,
+        const activeItemCSV = v.objectValuesSupplier(childItemValue);
+        const childTransformer = tr.childrenTransfomer(this.model);
+        const childPipe = v.objectPipe(
+          activeItemCSV,
+          childTransformer.transformPropName,
+          itemIndex,
         );
-        if (destination) {
-          destination.assign(srcPropName, children, destFieldName);
-        }
+        children.push(childPipe.instance);
+        childTransformer.transformValues(childPipe);
+      }
+      if (pipe.destination) {
+        pipe.destination.assign(pvs.propName, children);
       }
     } else {
-      reportError(
-        this,
-        srcPropName,
-        srcValue,
-        cvs,
+      tr.onPropError(
+        pvs,
         `[ObjectArrayProperty] ${this.nature.inflect()} property values must be an array (item ${itemIndex} is ${typeof srcValue})`,
       );
       itemIndex++;
@@ -99,7 +70,7 @@ export class ObjectArrayProperty implements PropertyDefn {
   }
 
   static isArray(
-    guessFrom: v.ContentValueSupplier,
+    guessFrom: v.ValueSupplier,
     guesser: PropertyDefnGuesser,
   ): ObjectArrayProperty | false {
     const valueRaw = guessFrom.valueRaw;
