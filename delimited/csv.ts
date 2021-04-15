@@ -35,7 +35,7 @@ export async function consumeCsvSourceWithHeader(
       const tdg = new g.TypicalModelGuesser({});
       model = tdg.guessDefnFromValues(rowCVS);
       tr = new v.ObjectValueTransformer(
-        model,
+        model!,
         { transformPropName: p.camelCasePropertyName },
       );
     }
