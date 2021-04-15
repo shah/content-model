@@ -12,7 +12,8 @@ Deno.test("Consume CSV (single row)", async () => {
   let contentCount = 0;
   const model = await c.consumeCsvSourceWithHeader(
     srcName,
-    (content: object, index: number, model: m.ContentModel): boolean => {
+    c.matrixFromLocalCSV,
+    (): boolean => {
       contentCount++;
       return true;
     },
@@ -33,7 +34,8 @@ Deno.test("Consume CSV (simple)", async () => {
   let contentCount = 0;
   const model = await c.consumeCsvSourceWithHeader(
     srcName,
-    (content: object, index: number, model: m.ContentModel): boolean => {
+    c.matrixFromLocalCSV,
+    (): boolean => {
       contentCount++;
       return true;
     },
@@ -57,7 +59,8 @@ Deno.test("Consume CSV (complex)", async () => {
   let contentCount = 0;
   const model = await c.consumeCsvSourceWithHeader(
     srcName,
-    (content: object, index: number, model: m.ContentModel): boolean => {
+    c.matrixFromLocalCSV,
+    (): boolean => {
       contentCount++;
       return true;
     },
@@ -67,5 +70,10 @@ Deno.test("Consume CSV (complex)", async () => {
     Object.keys(model).length,
     80,
     `80 properties expected in ${srcName}`,
+  );
+  a.assertEquals(
+    contentCount,
+    5,
+    `5 rows expected in ${srcName} not ${contentCount}`,
   );
 });

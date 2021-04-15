@@ -4,13 +4,25 @@ import * as m from "../model.ts";
 import * as p from "../property.ts";
 import * as v from "../values.ts";
 
-export async function consumeCsvSourceWithHeader(
-  csvSource: string,
-  consume: m.ContentConsumer,
-): Promise<m.ContentModel | undefined> {
+export interface MatrixSupplier {
+  (csvSource: string | URL): Promise<string[][]>;
+}
+
+export const matrixFromLocalCSV: MatrixSupplier = async (
+  csvSource: string | URL,
+): Promise<string[][]> => {
   const f = await Deno.open(csvSource);
   const matrix = await csv.readMatrix(new stdBufIO.BufReader(f));
   f.close();
+  return matrix;
+};
+
+export async function consumeCsvSourceWithHeader(
+  csvSource: string | URL,
+  matrixSupplier: MatrixSupplier,
+  consume: m.ContentConsumer,
+): Promise<m.ContentModel | undefined> {
+  const matrix = await matrixSupplier(csvSource);
 
   let rowIndex = 0;
   let index: v.ArrayValuesIndex | undefined = undefined;
