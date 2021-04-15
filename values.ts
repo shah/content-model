@@ -4,17 +4,17 @@ import * as p from "./property.ts";
 export interface ContentValuesSupplier {
   readonly contentIndex: number;
   valueNames: string[];
-  valueByName(name: p.PropertyName): any;
+  valueByName(name: p.PropertyName): unknown;
 }
 
 export function objectValuesSupplier(
-  instance: { [key: string]: any },
+  instance: Record<string, unknown>,
   index?: number,
 ): ContentValuesSupplier {
   return {
     contentIndex: index ? index : 0,
     valueNames: Object.keys(instance),
-    valueByName: (name: p.PropertyName): any => {
+    valueByName: (name: p.PropertyName): unknown => {
       return instance[name];
     },
   };
@@ -31,6 +31,7 @@ export interface ArrayValuesIndex {
 }
 
 export function guessArrayValueNamesFromHeaderRow(
+  // deno-lint-ignore no-explicit-any
   instance: any[],
   rowCounter?: number,
 ): ArrayValuesIndex {
@@ -44,6 +45,7 @@ export function guessArrayValueNamesFromHeaderRow(
 }
 
 export function arrayValuesSupplier(
+  // deno-lint-ignore no-explicit-any
   instance: any[],
   index: ArrayValuesIndex,
   rowCounter?: number,
@@ -51,7 +53,7 @@ export function arrayValuesSupplier(
   return {
     contentIndex: rowCounter ? rowCounter : 0,
     valueNames: index.colNames,
-    valueByName: (name: p.PropertyName): any => {
+    valueByName: (name: p.PropertyName): unknown => {
       const colNum = index.colIndexByName[name];
       return colNum !== undefined
         ? instance[index.colIndexByName[name]]
@@ -62,7 +64,7 @@ export function arrayValuesSupplier(
 
 export interface ValueSupplier {
   readonly sourceCVS: ContentValuesSupplier;
-  readonly valueRaw: any;
+  readonly valueRaw: unknown;
 }
 
 export interface PropertyValueSupplier extends ValueSupplier {
@@ -72,7 +74,7 @@ export interface PropertyValueSupplier extends ValueSupplier {
 
 export interface ContentValuesDestination {
   readonly contentIndex: number;
-  assign(name: p.PropertyName, value: any): void;
+  assign(name: p.PropertyName, value: unknown): void;
 }
 
 export interface ValuePipe {
@@ -81,7 +83,7 @@ export interface ValuePipe {
 }
 
 export interface ObjectPipe extends ValuePipe {
-  readonly instance: { [name: string]: any };
+  readonly instance: { [name: string]: unknown };
 }
 
 export function objectPipe(
@@ -89,13 +91,13 @@ export function objectPipe(
   transformPropName: p.PropertyNameTransformer,
   index?: number,
 ): ObjectPipe {
-  const newInstance: { [name: string]: any } = {};
+  const newInstance: { [name: string]: unknown } = {};
   return {
     instance: newInstance,
     source: source,
     destination: {
       contentIndex: index ? index : 0,
-      assign: (name: p.PropertyName, value: any): void => {
+      assign: (name: p.PropertyName, value: unknown): void => {
         newInstance[transformPropName(name)] = value;
       },
     },
@@ -104,11 +106,11 @@ export function objectPipe(
 
 export function getSourceValueAndContinue(
   pvs: PropertyValueSupplier,
-): [any, boolean] {
+): [unknown, boolean] {
   const required = typeof pvs.propDefn.valueRequired === "function"
     ? pvs.propDefn.valueRequired()
     : pvs.propDefn.valueRequired;
-  let srcValue = pvs.valueRaw;
+  const srcValue = pvs.valueRaw;
   if (!required) {
     if (
       srcValue == null || srcValue == undefined ||

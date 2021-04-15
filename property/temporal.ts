@@ -1,4 +1,4 @@
-import { inflect, moment } from "../deps.ts";
+import { dayjs, inflect } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
 import {
   PropertyDefn,
@@ -62,7 +62,7 @@ export class DateTimeProperty implements PropertyDefn {
       return;
     }
 
-    const dateTime = moment.moment(
+    const dateTime = dayjs.default(
       srcValue,
       this.momentFormat,
       true,
@@ -87,8 +87,8 @@ export class DateTimeProperty implements PropertyDefn {
     { tryMomentFormat: "YYYY-MM-DD HH:MM:SS UTC" },
     { tryMomentFormat: "ddd MMM DD HH:mm:ss UTC YYYY" },
     { tryMomentFormat: "ddd MMM DD HH:mm:ss UTC YYYY" },
-    { tryMomentFormat: moment.moment.ISO_8601 },
-    { tryMomentFormat: moment.moment.RFC_2822 },
+    { tryMomentFormat: dayjs.default.ISO_8601 },
+    { tryMomentFormat: dayjs.default.RFC_2822 },
   ];
 
   static isDateTime(
@@ -105,7 +105,7 @@ export class DateTimeProperty implements PropertyDefn {
         ...(options.guessFromOnlyDateFormats || this.defaultDateFormats),
       ];
       for (const gdf of formats) {
-        const value = moment.moment(valueRaw, gdf.tryMomentFormat, true);
+        const value = dayjs.default(valueRaw, gdf.tryMomentFormat, true);
         if (value.isValid()) {
           return new DateTimeProperty(
             options.valueIsRequired,

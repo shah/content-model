@@ -1,4 +1,4 @@
-import { stdPath as path, stdFS as fs } from "./deps.ts";
+import { stdFS as fs, stdPath as path } from "./deps.ts";
 
 export function findFileInPaths(
   fileName: string,

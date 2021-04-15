@@ -1,3 +1,4 @@
+import { safety } from "./deps.ts";
 import * as p from "./property.ts";
 import * as v from "./values.ts";
 
@@ -6,13 +7,12 @@ export interface ContentModel {
 }
 
 export interface ContentModelSupplier {
-  readonly isContentModelSupplier: true;
   readonly model: ContentModel;
 }
 
-export function isContentModelSupplier(o: any): o is ContentModelSupplier {
-  return "isContentModelSupplier" in o;
-}
+export const isContentModelSupplier = safety.typeGuard<ContentModelSupplier>(
+  "model",
+);
 
 export type ContentErrorMessage = string;
 
@@ -20,14 +20,18 @@ export interface ContentErrorHandler {
   readonly reportPropertyError: p.PropertyErrorHandler;
   reportContentError(
     model: ContentModel,
-    content: { [propName: string]: any },
+    content: { [propName: string]: unknown },
     index: number,
     message: ContentErrorMessage,
   ): void;
 }
 
 export interface ContentConsumer {
-  (content: object, index: number, model: ContentModel): boolean;
+  (
+    content: Record<string, unknown>,
+    index: number,
+    model: ContentModel,
+  ): boolean;
 }
 
 export class ConsoleErrorHandler implements ContentErrorHandler {
@@ -41,8 +45,8 @@ export class ConsoleErrorHandler implements ContentErrorHandler {
   }
 
   reportContentError(
-    model: ContentModel,
-    content: { [propName: string]: any },
+    _model: ContentModel,
+    _content: { [propName: string]: unknown },
     index: number,
     message: ContentErrorMessage,
   ): void {

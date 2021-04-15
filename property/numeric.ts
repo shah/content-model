@@ -38,8 +38,8 @@ export abstract class NumericProperty implements PropertyDefn {
     if (typeof valueRaw === "string") {
       // remove comma separators and test if we have a number
       if (!isNaN(Number(valueRaw.replace(/,/g, "")))) {
-        const float = parseFloat(guessFrom.valueRaw);
-        const integer = parseInt(guessFrom.valueRaw);
+        const float = parseFloat(valueRaw);
+        const integer = parseInt(valueRaw);
         if (float === integer) {
           return new IntegerProperty(guesser.valueIsRequired, guesser);
         }

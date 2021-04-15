@@ -122,7 +122,7 @@ export interface ModelGuesserOptions {
 
 export interface ModelGuesser extends ModelGuesserOptions {
   guessKeyValueModel(
-    content: { [key: string]: any },
+    content: { [key: string]: unknown },
   ): m.ContentModel | undefined;
   guessDefnFromValues(cvs: v.ContentValuesSupplier): m.ContentModel;
   guessPropertyDefn(
@@ -254,7 +254,7 @@ export class TypicalModelGuesser implements ModelGuesser {
   }
 
   guessKeyValueModel(
-    content: { [key: string]: any },
+    content: { [key: string]: unknown },
   ): m.ContentModel | undefined {
     if (!content) {
       return undefined;
@@ -263,7 +263,7 @@ export class TypicalModelGuesser implements ModelGuesser {
     const cvs: v.ContentValuesSupplier = {
       contentIndex: 0,
       valueNames: Object.keys(content),
-      valueByName: (name: string): any => {
+      valueByName: (name: string): unknown => {
         return content[name];
       },
     };

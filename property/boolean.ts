@@ -1,9 +1,6 @@
 import { inflect } from "../deps.ts";
 import { PropertyDefnGuesser } from "../guess.ts";
-import {
-  PropertyNature,
-  PropertyValueRequired,
-} from "../property.ts";
+import { PropertyNature, PropertyValueRequired } from "../property.ts";
 import * as v from "../values.ts";
 import { ConstrainedTextProperty, RegExpConstraint } from "./text.ts";
 

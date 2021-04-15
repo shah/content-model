@@ -37,7 +37,7 @@ export class ObjectArrayProperty
 
     let itemIndex = 0;
     if (Array.isArray(srcValue)) {
-      const children: object[] = [];
+      const children: Record<string, unknown>[] = [];
       for (const childItemValue of srcValue) {
         if (!(typeof childItemValue === "object")) {
           tr.onPropError(

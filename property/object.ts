@@ -35,8 +35,8 @@ export class ObjectProperty implements m.ContentModelSupplier, PropertyDefn {
     const [srcValue, required] = v.getSourceValueAndContinue(pvs);
     if (!required) return;
 
-    if (typeof srcValue === "object") {
-      const activeItemCSV = v.objectValuesSupplier(srcValue);
+    if (srcValue && typeof srcValue === "object") {
+      const activeItemCSV = v.objectValuesSupplier({ ...srcValue });
       const childTransformer = tr.childrenTransfomer(this.model);
       const childPipe = v.objectPipe(
         activeItemCSV,
@@ -59,16 +59,17 @@ export class ObjectProperty implements m.ContentModelSupplier, PropertyDefn {
     guessFrom: v.ValueSupplier,
     guesser: PropertyDefnGuesser,
   ): ObjectProperty | DateTimeProperty | false {
-    let result: PropertyDefn | false = DateTimeProperty.isDateTime(
+    const result: PropertyDefn | false = DateTimeProperty.isDateTime(
       guessFrom,
       guesser,
     );
     if (result) return result;
 
-    if (typeof guessFrom.valueRaw === "object") {
-      const childModel = guesser.modelGuesser.guessKeyValueModel(
-        guessFrom.valueRaw,
-      );
+    const valueRaw = guessFrom.valueRaw;
+    if (valueRaw && typeof valueRaw === "object") {
+      const childModel = guesser.modelGuesser.guessKeyValueModel({
+        ...valueRaw,
+      });
       if (childModel) {
         return new ObjectProperty(guesser.valueIsRequired, childModel, guesser);
       }

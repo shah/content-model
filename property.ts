@@ -18,7 +18,7 @@ export interface PropertyNameTransformer {
 export function camelCasePropertyName(
   srcPropName: PropertyName,
 ): PropertyName {
-  let result = srcPropName.replace(/\(s\)$/, "s");
+  const result = srcPropName.replace(/\(s\)$/, "s");
   return inflect.toCamelCase(inflect.guessCaseValue(result));
 }
 

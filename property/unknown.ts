@@ -17,7 +17,7 @@ export enum UnknownPropertyType {
 export class UnknownProperty implements PropertyDefn {
   readonly nature: PropertyNature = inflect.guessCaseValue("Unknown");
   readonly valueRequired: PropertyValueRequired = false;
-  private guessedAgain: number = 0;
+  private guessedAgain = 0;
 
   constructor(
     readonly propertyType: UnknownPropertyType,
@@ -77,7 +77,7 @@ export class UnknownProperty implements PropertyDefn {
     guessFrom: v.ValueSupplier,
     guesser: PropertyDefnGuesser,
   ): PropertyDefn | false {
-    let valueRaw = guessFrom.valueRaw;
+    const valueRaw = guessFrom.valueRaw;
     if (
       valueRaw == undefined || valueRaw == null ||
       (typeof valueRaw === "string" && valueRaw.trim().length == 0) ||
